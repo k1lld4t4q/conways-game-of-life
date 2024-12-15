@@ -75,21 +75,21 @@ void init_field(int rows, int columns, int field[])
 {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < columns; j++) {
-          field[j + columns * i] = 0;  
+          field[j+columns*i] = 0;  
         }
     }
 }
 
 void edit_field(int x, int y, int columns, int field[])
 {
-    field[x + columns * y] = !field[x + columns * y];
+    field[x+columns*y] = !field[x+columns*y];
 }
 
 void draw_field(int rows, int columns, int cell_width, SDL_Surface* surface, int field[])
 {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < columns; j++) {
-            if (field[j + columns * i]) {
+            if (field[j+columns*i]) {
                 draw_cell(j, i, cell_width, surface, COLOR_CELL);
             } else {
                 draw_cell(j, i, cell_width, surface, COLOR_BLACK);
@@ -103,35 +103,35 @@ int count_neighbours(int x, int y, int rows, int columns, int field[])
     int counter = 0;
 
     if (x > 0 && y > 0) {
-        counter += field[(x - 1) + (y - 1) * columns];
+        counter += field[(x-1)+(y-1)*columns];
     }
 
     if (y > 0) {
-        counter += field[x + (y - 1) * columns];
+        counter += field[x+(y-1)*columns];
     }
 
-    if (x < columns - 1 && y > 0) {
-        counter += field[(x + 1) + (y - 1) * columns];
+    if (x < columns-1 && y > 0) {
+        counter += field[(x+1)+(y-1)*columns];
     }
     
     if (x > 0) {
-        counter += field[(x - 1) + y * columns];
+        counter += field[(x-1)+y*columns];
     }
 
-    if (x < columns - 1) {
-        counter += field[(x + 1) + y * columns];
+    if (x < columns-1) {
+        counter += field[(x+1)+y*columns];
     }
 
-    if (x > 0 && y < rows - 1) {
-        counter += field[(x - 1) + (y + 1) * columns];
+    if (x > 0 && y < rows-1) {
+        counter += field[(x-1)+(y+1)*columns];
     }
 
-    if (y < rows - 1) {
-        counter += field[x + (y + 1) * columns];
+    if (y < rows-1) {
+        counter += field[x+(y+1)*columns];
     }
 
-    if (x < columns - 1 && y < rows - 1) {
-        counter += field[(x + 1) + (y + 1) * columns];
+    if (x < columns-1 && y < rows-1) {
+        counter += field[(x+1)+(y+1)*columns];
     }
 
     return counter;
@@ -139,119 +139,44 @@ int count_neighbours(int x, int y, int rows, int columns, int field[])
 
 void simulate(int rows, int columns, int field[])
 {
-    int new_field[rows * columns];
+    int new_field[rows*columns];
     init_field(rows, columns, new_field);
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < columns; j++) {
-            int cell_status = field[j + i * columns];
+            int cell_status = field[j+i*columns];
             int neighbours = count_neighbours(j, i, rows, columns, field);
             if (cell_status == 1 && neighbours < 2) {
-                new_field[j + i * columns] = 0;
+                new_field[j+i*columns] = 0;
             }
 
             if (cell_status == 1 && (neighbours == 2 || neighbours == 3)) {
-                new_field[j + i * columns] = 1;
+                new_field[j+i*columns] = 1;
             }
 
             if (cell_status == 1 && neighbours > 3) {
-                new_field[j + i * columns] = 0;
+                new_field[j+i*columns] = 0;
             }
 
             if (cell_status == 0 && neighbours == 3) {
-                new_field[j + i * columns] = 1;
+                new_field[j+i*columns] = 1;
             }
         }
     }
 
-    for (int n = 0; n < rows * columns; n++) {
+    for (int n = 0; n < rows*columns; n++) {
         field[n] = new_field[n];
     }
 }
 
-int update(int width, int height, int cell_width, int columns, int rows, SDL_Surface* surface, int field[], Coordinates* cords, Settings* settings)
+int update(int cell_width, int columns, int rows, SDL_Surface* surface, int field[], Coordinates* pCords, Settings* pSettings)
 {
-    SDL_Rect clearscr = (SDL_Rect) {0, 0, width, height};
-
-    SDL_PumpEvents();
-    const Uint8 *keys = SDL_GetKeyboardState(NULL);
-
-    if (settings->simulation) {
+    if (pSettings->simulation) {
         simulate(rows, columns, field);
     }
 
-    if (settings->cursor) {
-        if (cords->x != cords->prevx || cords->y != cords->prevy) {
-            clear_cursor(cords->prevx, cords->prevy, cell_width, surface);
-        }
-        draw_cursor(cords->x, cords->y, cell_width, surface);
-    }
-
-    cords->prevx = cords->x;
-    cords->prevy = cords->y;
-
-    if (keys[SDL_SCANCODE_Q]) {
-        return 0;
-    }
-
-    if (keys[SDL_SCANCODE_T]) {
-        settings->simulation = !settings->simulation;
-    }
-
-    if (keys[SDL_SCANCODE_K]) {
-        clear_cursor(cords->x, cords->y, cell_width, surface);
-        settings->cursor = !settings->cursor;
-    }
-
-    if (keys[SDL_SCANCODE_C]) {
-        SDL_FillRect(surface, &clearscr, COLOR_BLACK);
-        draw_grid(cell_width, columns, rows, width, height, surface);
-        init_field(rows, columns, field);
-    }
-
-    if (keys[SDL_SCANCODE_SPACE] && settings->cursor) {
-        edit_field(cords->x, cords->y, columns, field);
-    }
-
-    if (keys[SDL_SCANCODE_D] && settings->cursor) {
-        cords->x += 1;
-        if (cords->x > width / cell_width-1) {
-            cords->x = 0;
-        }
-    }
-
-    if (keys[SDL_SCANCODE_A] && settings->cursor) {
-        cords->x -= 1;
-        if (cords->x < 0) {
-            cords->x = width / cell_width-1;
-        }
-    }
-
-    if (keys[SDL_SCANCODE_S] && settings->cursor) {
-        cords->y += 1;
-        if (cords->y > height / cell_width-1) {
-            cords->y = 0;
-        }
-	}
-
-    if (keys[SDL_SCANCODE_W] && settings->cursor) {
-        cords->y -= 1;
-        if (cords->y < 0) {
-            cords->y = height / cell_width-1;
-        }
-    }
-
-    if (keys[SDL_SCANCODE_M]) {
-        if (settings->update_ms > 100) {
-            return 1;
-        }
-        settings->update_ms += 1;
-    }
-
-    if (keys[SDL_SCANCODE_P]) {
-        if (settings->update_ms < 10) {
-            return 1;
-        }
-        settings->update_ms -= 1;
+    if (pSettings->cursor) {
+        clear_cursor(pCords->prevx, pCords->prevy, cell_width, surface);
+        draw_cursor(pCords->x, pCords->y, cell_width, surface);
     }
 
     draw_field(rows, columns, cell_width, surface, field);
@@ -262,15 +187,94 @@ int update(int width, int height, int cell_width, int columns, int rows, SDL_Sur
 void game_loop(int width, int height, int cell_width, int columns, int rows, SDL_Surface* surface, SDL_Window* window)
 {
     int game = 1;
-    int field[rows * columns];
+    int field[rows*columns];
     init_field(rows, columns, field);
     Settings settings = {1, 50, 0};
     Settings *pSettings = &settings;
     Coordinates cords = {0, 0, 0, 0};
+    Coordinates *pCords = &cords;
+    SDL_Event event;
+    SDL_Rect clearscr = (SDL_Rect){0, 0, columns, rows};
 
     while (game) {
-        game = update(width, height, cell_width, columns, rows, surface, field, &cords, &settings);
+        while (SDL_PollEvent(&event)) {
+            switch(event.type) {
+                case SDL_KEYDOWN:
+                    switch(event.key.keysym.sym) {
+                        case SDLK_q:
+                            return;
+
+                        case SDLK_t:
+                            pSettings->simulation = !pSettings->simulation;
+                            break;
+
+                        case SDLK_c:
+                            SDL_FillRect(surface, &clearscr, COLOR_BLACK);
+                            draw_grid(cell_width, columns, rows, width, height, surface);
+                            init_field(rows, columns, field);
+                            break;
+
+                        case SDLK_k:
+                            clear_cursor(pCords->x, pCords->y, cell_width, surface);
+                            pSettings->cursor = !pSettings->cursor;
+                            break;
+
+                        case SDLK_m: 
+                            pSettings->update_ms += 10;
+                            if (pSettings->update_ms > 100) { pSettings->update_ms = 100; }
+                            break;
+
+                        case SDLK_p:
+                            pSettings->update_ms += -10;
+                            if (pSettings->update_ms < 10) { pSettings->update_ms = 10; }
+                            break;
+
+                        case SDLK_SPACE:
+                            if (pSettings->cursor) {
+                                edit_field(pCords->x, pCords->y, columns, field);
+                                break;
+                            }
+
+                        case SDLK_w:
+                            if (pSettings->cursor) {
+                                pCords->y += -1;
+                                if (pCords->y < 0) { pCords->y = rows-1; }
+                            }
+                            break;
+
+                        case SDLK_a:
+                            if (pSettings->cursor) {
+                                pCords->x += -1;
+                                if (pCords->x < 0) { pCords->x = columns-1; }
+                            }
+                            break;
+            
+                        case SDLK_s:
+                            if (pSettings->cursor) {
+                                pCords->y += 1;
+                                if (pCords->y > rows-1) { pCords->y = 0; }
+                            }
+                            break;
+
+                        case SDLK_d:
+                            if (pSettings->cursor) {
+                                pCords->x += 1;
+                                if (pCords->x > columns-1) { pCords->x = 0;  }
+                            }
+                            break;
+
+                    }
+                default:
+                    break;
+            }
+        }
+
+        game = update(cell_width, columns, rows, surface, field, pCords, pSettings);
         SDL_UpdateWindowSurface(window);
+
+        pCords->prevx = pCords->x;
+        pCords->prevy = pCords->y;
+
         Sleep(pSettings->update_ms);
     }
 
